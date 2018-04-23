@@ -5,7 +5,6 @@ from apiclient import discovery
 from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
-from .models import Directory
 from django.conf import settings
 
 
@@ -58,11 +57,7 @@ def get_data():
     query = "parents='%s' and mimeType='application/vnd.google-apps.folder'" % settings.GD_ROOT_DIR_ID
     results = service.files().list(q=query).execute()
 
-    items = results.get('items', [])
-    if items:
-        for item in items:
-            Directory.objects.create(
-                title=item['title'], dir_id=item['id'], url=item['alternateLink'])
+    return results.get('items', [])
 
 
 def process_csv():
