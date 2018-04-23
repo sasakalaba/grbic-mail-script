@@ -6,6 +6,7 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 from django.conf import settings
+from .parse_email import get_urls, get_emails, clean_emails, write_data
 
 
 flags = None
@@ -60,7 +61,11 @@ def get_data():
     return results.get('items', [])
 
 
-def process_csv():
+def get_results(urls_path, emails_path):
     """
+    Process data.
     """
-    pass
+    urls = get_urls(urls_path)
+    emails = get_emails(emails_path)
+    results = clean_emails(emails)
+    write_data(urls, results)
