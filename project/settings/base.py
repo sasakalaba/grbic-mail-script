@@ -84,3 +84,6 @@ STATIC_ROOT = ENV_STR('STATIC_ROOT', ABS_PATH('static'))
 STATICFILES_DIRS = (
     ABS_PATH('project', 'static'),
 )
+
+MEDIA_URL = ENV_STR('MEDIA_URL', '/media/')
+MEDIA_ROOT = ENV_STR('MEDIA_ROOT', ABS_PATH('', 'media'))
