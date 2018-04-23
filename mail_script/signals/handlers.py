@@ -11,7 +11,7 @@ def get_directories(sender, user, request, **kwargs):
     if items:
         Directory.objects.all().delete()
         for item in items:
-            Directory.objects.get_create(
+            Directory.objects.create(
                 title=item['title'], dir_id=item['id'], url=item['alternateLink'])
 
 
