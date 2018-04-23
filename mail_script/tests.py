@@ -1,3 +1,13 @@
 from django.test import TestCase
+from .helpers import get_data
 
-# Create your tests here.
+
+class GoogleDriveGetDataTest(TestCase):
+    """
+    Unit tests for import data helper function.
+    """
+
+    def test_get_data(self):
+        """
+        """
+        get_data()

@@ -87,3 +87,7 @@ STATICFILES_DIRS = (
 
 MEDIA_URL = ENV_STR('MEDIA_URL', '/media/')
 MEDIA_ROOT = ENV_STR('MEDIA_ROOT', ABS_PATH('', 'media'))
+
+
+# Mail Script settings
+GD_ROOT_DIR_ID = '1PB6dLXW_D5Z1wIFIXOKe7HaIQN2-sCub'
