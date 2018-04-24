@@ -1,4 +1,3 @@
-# from __future__ import print_function
 import httplib2
 import os
 import io
@@ -12,6 +11,10 @@ from .parse_email import get_urls, get_emails, clean_emails, write_data
 
 
 class Client(object):
+    """
+    Main wrapper for handling requests and responses to the Google Drive API.
+    """
+
     # If modifying these scopes, delete your previously saved credentials
     # at ~/.credentials/drive-python-quickstart.json
     SCOPES = 'https://www.googleapis.com/auth/drive.file'
@@ -63,18 +66,6 @@ class Client(object):
         results = self.service.files().list(q=query).execute()
 
         return results.get('items', [])
-
-
-#
-def get_results(urls_path, emails_path):
-    """
-    Process data.
-    """
-    urls = get_urls(urls_path)
-    emails = get_emails(emails_path)
-    results = clean_emails(emails)
-    write_data(urls, results)
-#
 
 
 """
