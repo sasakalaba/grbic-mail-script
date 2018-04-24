@@ -3,3 +3,5 @@
 /static/
 *db.sqlite3
 client_secret.json
+credentials.json
+media/

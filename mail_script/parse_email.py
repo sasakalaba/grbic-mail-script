@@ -1,6 +1,7 @@
 import csv
 import os
 import shutil
+import zipfile
 from collections import OrderedDict
 from urllib.parse import urlparse
 from django.conf import settings
@@ -78,14 +79,11 @@ class Parser(object):
 
         return emails
 
-    def write_data(self, urls, emails):
+    def write_data(self, urls, emails, result_path, empty_emails_path):
         """
         Append email data to urls.
         """
         empty_emails = {}
-
-        # Create results directory.
-        self.make_results_dir()
 
         # We're gonna use urls dict as the main container, so take all the data out
         # of emails dict and merge them into urls.
@@ -98,7 +96,7 @@ class Parser(object):
         urls = OrderedDict(sorted(urls.items()))
 
         # Get final data (emails mapped to their URLs)
-        with open(self.result_path, 'w') as csvfile:
+        with open(result_path, 'w') as csvfile:
             fieldnames = ['Email', 'URL', ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -121,7 +119,7 @@ class Parser(object):
                 })
 
         # Output empty emails into a separate csv
-        with open(self.empty_emails_path, 'w') as csvfile:
+        with open(empty_emails_path, 'w') as csvfile:
             fieldnames = ['Domain', 'URL', ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -133,8 +131,8 @@ class Parser(object):
                 })
 
         return {
-            'result': self.result_path,
-            'empty_emails': self.empty_emails_path
+            'result': result_path,
+            'empty_emails': empty_emails_path
         }
 
 
@@ -143,31 +141,20 @@ class Writer(object):
     Main class for writing and destroying cleaned data.
     """
 
-    def __init__(self, result_path, empty_emails_path, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.parser = Parser()
-        self.result_path = result_path
-        self.empty_emails_path = empty_emails_path
-
-    def make_base_dirs(self):
-        """
-        Create results directory.
-        """
 
         # Create temporary directories for data storage and download.
         self.temp_path = os.path.join(settings.MEDIA_ROOT, 'temp')
         self.result_path = os.path.join(settings.MEDIA_ROOT, 'results')
 
+    def make_base_dirs(self):
+        """
+        Create results directory.
+        """
         for dir_path in (self.temp_path, self.result_path):
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
-
-    def make_result_dirs(self, name):
-        """
-        Creates subdirectories for cleaned data.
-        """
-        path = os.path.join(self.result_path, '%s_result' % name)
-        if not os.path.exists(path):
-            os.makedirs(path)
 
     def destroy_dirs(self):
         """
@@ -176,12 +163,34 @@ class Writer(object):
         shutil.rmtree(self.temp_path)
         shutil.rmtree(self.result_path)
 
-    def process(self, urls_path, emails_path):
+    def compress(self):
+        """
+        Compresses results.
+        """
+        filepath = os.path.join(settings.MEDIA_ROOT, 'results.zip')
+        zipf = zipfile.ZipFile(filepath, 'w', zipfile.ZIP_DEFLATED)
+
+        for root, dirs, files in os.walk(self.result_path):
+            for file in files:
+                zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(self.result_path, '..')))
+        zipf.close()
+
+        return filepath
+
+    def process(self, directory, urls_path, emails_path):
         """
         Process data.
         """
         urls = self.parser.get_urls(urls_path)
         emails = self.parser.get_emails(emails_path)
         results = self.parser.clean_emails(emails)
+
+        # Create directories
+        subdir = os.path.join(self.result_path, '%s_result' % directory.title)
+        if not os.path.exists(subdir):
+            os.makedirs(subdir)
+        urls_result_path = os.path.join(subdir, 'urls.csv')
+        empty_emails_path = os.path.join(subdir, 'emails.csv')
+
         self.parser.write_data(
-            urls, results, self.result_path, self.empty_emails_path)
+            urls, results, urls_result_path, empty_emails_path)

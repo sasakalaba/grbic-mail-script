@@ -28,7 +28,7 @@ def clean_directories(file_data):
 
     if file_data:
         for file in file_data:
-            filename = file.get('title', '')
+            filename = file.get('name', '')
             if filename and filename.startswith('Outreach'):
                 data['urls'] = file['id']
             elif clean_email_title(filename):
@@ -48,12 +48,11 @@ def get_directories(sender, user, request, **kwargs):
         for item in items:
             query = "parents='%s'" % item['id']
             data = client.service.files().list(q=query).execute()
-            children = clean_directories(data.get('items', []))
+            children = clean_directories(data.get('files', []))
 
             params = {
-                'title': item['title'],
+                'title': item['name'],
                 'dir_id': item['id'],
-                'url': item['alternateLink'],
                 'urls_id': children['urls'],
                 'emails_id': children['emails']
             }

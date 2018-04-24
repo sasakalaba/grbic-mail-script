@@ -6,7 +6,6 @@ class Directory(models.Model):
     dir_id = models.CharField(max_length=50)
     urls_id = models.CharField(max_length=50, blank=True, null=True)
     emails_id = models.CharField(max_length=50, blank=True, null=True)
-    url = models.URLField(max_length=300)
 
     class Meta:
         verbose_name_plural = "Directories"

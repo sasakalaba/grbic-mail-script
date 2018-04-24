@@ -1,13 +1,10 @@
-import httplib2
 import os
 import io
-from apiclient import discovery
+from apiclient.discovery import build
 from apiclient.http import MediaIoBaseDownload
-from oauth2client import client
-from oauth2client import tools
-from oauth2client.file import Storage
+from httplib2 import Http
+from oauth2client import file, client, tools
 from django.conf import settings
-from .parse_email import get_urls, get_emails, clean_emails, write_data
 
 
 class Client(object):
@@ -15,45 +12,22 @@ class Client(object):
     Main wrapper for handling requests and responses to the Google Drive API.
     """
 
-    # If modifying these scopes, delete your previously saved credentials
-    # at ~/.credentials/drive-python-quickstart.json
     SCOPES = 'https://www.googleapis.com/auth/drive.file'
-    CLIENT_SECRET_FILE = 'client_secret.json'
-    APPLICATION_NAME = 'Drive API Python Quickstart'
 
     def __init__(self, *args, **kwargs):
         """
         Initialize the API.
         """
-        credentials = self._get_credentials()
-        http = credentials.authorize(httplib2.Http())
-        self.service = discovery.build('drive', 'v2', http=http)
+        store = file.Storage('credentials.json')
+        creds = store.get()
+        if not creds or creds.invalid:
+            flow = client.flow_from_clientsecrets('client_secret.json', self.SCOPES)
+            creds = tools.run_flow(flow, store)
+        self.service = build('drive', 'v3', http=creds.authorize(Http()))
 
-    def _get_credentials(self):
-        """
-        Gets valid user credentials from storage.
 
-        If nothing has been stored, or if the stored credentials are invalid,
-        the OAuth2 flow is completed to obtain the new credentials.
 
-        Returns:
-            Credentials, the obtained credential.
-        """
-        home_dir = os.path.expanduser('~')
-        credential_dir = os.path.join(home_dir, '.credentials')
-        if not os.path.exists(credential_dir):
-            os.makedirs(credential_dir)
-        credential_path = os.path.join(credential_dir, 'drive-python-quickstart.json')
-
-        store = Storage(credential_path)
-        credentials = store.get()
-        if not credentials or credentials.invalid:
-            flow = client.flow_from_clientsecrets(
-                self.CLIENT_SECRET_FILE, self.SCOPES)
-            flow.user_agent = self.APPLICATION_NAME
-            credentials = tools.run(flow, store)
-            print('Storing credentials to ' + credential_path)
-        return credentials
+        self.temp_path = os.path.join(settings.MEDIA_ROOT, 'temp')
 
     def get_data(self):
         """
@@ -65,26 +39,41 @@ class Client(object):
         )
         results = self.service.files().list(q=query).execute()
 
-        return results.get('items', [])
+        return results.get('files', [])
 
+    def download_csv(self, file_id, dir_path, filename):
+        """
+        Download file by id.
+        """
+        request = self.service.files().get_media(fileId=file_id)
+        fh = io.BytesIO()
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
 
-"""
-def get_files(file_id):
-    # Retrieves specific files from dir list.
+        filepath = os.path.join(dir_path, filename)
+        with open(filepath, 'wb') as output:
+            output.write(fh.getvalue())
 
-    service = init_service()
+        return filepath
 
-    #
-    query = "parents='%s'" % '1yncWniN1kcQClqLZ_tRlSbQVTTXDWVI3'
-    results = service.files().list(q=query).execute()
+    def get_csv(self, directory):
+        """
+        Downloads files by id from Google Drive.
+        """
 
-    items = results.get('items', [])
-    #
+        paths = {}
 
-    request = service.files().get_media(fileId=file_id)
-    fh = io.BytesIO()
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    while done is False:
-        status, done = downloader.next_chunk()
-"""
+        # Create the download directory.
+        download_dir = os.path.join(self.temp_path, directory.title)
+        if not os.path.exists(download_dir):
+            os.makedirs(download_dir)
+
+        # Download files.
+        paths['urls_path'] = self.download_csv(
+            directory.urls_id, download_dir, 'urls.csv')
+        paths['emails_path'] = self.download_csv(
+            directory.emails_id, download_dir, 'emails.csv')
+
+        return paths
