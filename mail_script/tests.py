@@ -1,5 +1,5 @@
 from django.test import TestCase
-from .helpers import get_data
+from .client import Client
 
 
 class GoogleDriveGetDataTest(TestCase):
@@ -10,4 +10,6 @@ class GoogleDriveGetDataTest(TestCase):
     def test_get_data(self):
         """
         """
-        get_data()
+        client = Client()
+        client.get_data()
+        # get_files('1yncWniN1kcQClqLZ_tRlSbQVTTXDWVI3')
